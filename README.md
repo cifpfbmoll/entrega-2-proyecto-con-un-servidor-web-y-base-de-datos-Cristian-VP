@@ -1,61 +1,57 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/4rO4igdX)
 # Proyecto con un servidor web y un servidor de base de datos
 
-## Ejercicios para repasar
+## Introducción
 
-1. Descarga las siguientes imágenes: `ubuntu:24.04`, `httpd`, `tomcat:9.0.39-jdk11`, `jenkins/jenkins:lts`, `php:7.4-apache`.
-2. Muestras las imágenes que tienes descargadas.
-3. Crea un contenedor demonio con la imagen `php:7.4-apache`.
-4. Comprueba el tamaño del contenedor en el disco duro.
-5. Con la instrucción `docker cp` podemos copiar ficheros a o desde un contenedor. Puedes encontrar información es esta [página](https://docs.docker.com/engine/reference/commandline/cp/). 
-    Crea un fichero en tu ordenador, con el siguiente contenido:
+Esta práctica documenta el despliegue de un servidor web basado en la imagen oficial de PHP con Apache y el arranque de un servidor de bases de datos MariaDB en contenedores Docker. El objetivo fue descargar las imágenes necesarias, crear los contenedores, comprobar el funcionamiento del servidor web y verificar el acceso remoto a la base de datos, aportando como evidencia capturas que ilustran cada comprobación relevante.
 
-    ```php
-    <?php
-    echo phpinfo();
-    ?>
-    ```
-    Copia un fichero `info.php` al directorio `/var/www/html` del contenedor con `docker cp`.
-6. Vuelve a comprobar el espacio ocupado por el contenedor.
-7. Accede al fichero `info.php` desde un navegador web.
+## Desarrollo
 
-## Descripción de la tarea
 
-### Servidor web
+La primera fase consistió en descargar las imágenes indicadas y verificar su presencia local. La siguiente captura muestra la lista de imágenes disponibles tras las descargas realizadas:
 
-* Arranca un contenedor que ejecute una instancia de la imagen `php:7.4-apache`, que se llame `web` y que sea accesible desde tu equipo en el puerto 8000.
-* Colocar en el directorio raíz del servicio web (`/var/www/html`) de dicho contenedor un fichero llamado `index.html` con el siguiente contenido:
+![Imágenes Docker descargadas](captures/docker_images.png)
 
-```html
-<h1>Hola soy XXXXXXXXXXXXXXX de IFC33X</h1>
-```
-Deberás sustituir XXXXXXXXXXX por tu nombre y tus apellidos.
+Esta imagen sirve como evidencia de que las imágenes solicitadas (entre ellas `ubuntu:24.04`, `httpd`, `tomcat:9.0.39-jdk11`, `jenkins/jenkins:lts` y `php:7.4`) estaban presentes antes de crear los contenedores.
 
-* Colocar en ese mismo directorio raíz un archivo llamado `index.php` con el siguiente contenido:
-```php
-<?php echo phpinfo(); ?>
-```
-* Para crear los ficheros tienes tres alternativas:
-    * Ejecutando bash de forma interactiva en el contenedor y creando los ficheros.
-    * Ejecutando un comando `echo` en el contenedor con `docker exec`.
-    * Usando `docker cp` como hemos visto en el ejercicio 5.
+## Servidor web
 
-### Servidor de base de datos
+Se desplegó un contenedor llamado `web` basado en `php:7.4-apache`, exponiendo el servicio en el puerto 8000 del host. A continuación se añadieron dos ficheros al directorio raíz del servidor web (`/var/www/html`): un `index.html` simple y un `index.php` que ejecuta `phpinfo()`.
 
-* Arrancar un contenedor que se llame `bbdd` y que ejecute una instancia de la imagen mariadb para que sea accesible desde el puerto 3336.
-* Antes de arrancarlo visitar la página del contenedor en [Docker Hub](https://hub.docker.com/_/mariadb) y establecer las variables de entorno necesarias para que:
+La captura que muestra el arranque del contenedor web es la siguiente:
 
-    * La contraseña de root sea `root`.
-    * Crear una base de datos automáticamente al arrancar que se llame `prueba`.
-    * Crear el usuario `invitado` con las contraseña `invitado`.
+![Arranque del contenedor web](captures/run-up_apache-web_server.png)
 
-# Entregables
+Al acceder desde el navegador, el `index.html` con el texto de presentación se mostró correctamente:
 
-Deberás entregar en este repositorio los siguientes pantallazos documentados en markdown (sin abuso de las IAs):
+![Navegador mostrando index.html](captures/index-hmtl_web_output.png)
 
-* Pantallazo que desde el navegador muestre el fichero `index.html`.
-* Pantallazo que desde el navegador muestre el fichero `index.php`.
-* Pantallazo donde se vea el tamaño del contenedor `web` después de crear los dos ficheros.
-* Pantallazo donde desde un cliente de base de datos (instalado en tu ordenador) se pueda observar que hemos podido conectarnos al servidor de base de datos con el usuario creado y que se ha creado la base de datos prueba (`show databases`). El acceso se debe realizar desde el ordenador que tenéis instalado docker, no hay que acceder desde dentro del contenedor, es decir, no usar `docker exec`.
-* Pantallazo donde se comprueba que no se puede borrar la imagen `mariadb` mientras el contenedor `bbdd` está creado.
+Y la página `index.php` produjo la salida de `phpinfo()`, confirmando que PHP está integrado con Apache en el contenedor:
+
+![Navegador mostrando phpinfo()](captures/php-info_web_result.png)
+
+También se comprobó el tamaño del contenedor después de copiar los ficheros al webroot; la evidencia de la operación (listado/copia y referencia al espacio ocupado) se recoge en:
+
+![Comprobación tras copiar los ficheros](captures/cp_index-files.png)
+
+## Servidor de base de datos
+
+Para la parte de base de datos se empleó la imagen oficial de MariaDB, configurada con variables de entorno para crear la contraseña de root (`root`), la base de datos inicial llamada `prueba` y el usuario `invitado` con contraseña `invitado`. Tras arrancar el contenedor `bbdd` con el puerto 3336 mapeado al 3306 interno, se comprobó la conectividad desde el equipo anfitrión empleando un cliente MySQL.
+
+Una vez configurado podemos acceder conectándonos con el usuario `invitado` o `root` y ejecutando `SHOW DATABASES;`, donde aparece la base de datos `prueba` creada en el arranque:
+
+![Salida cliente MySQL mostrando la base de datos prueba](captures/db_invitado_user.png)  
+![Salida cliente MySQL mostrando la base de datos prueba](captures/db_root_user.png)  
+
+
+
+Se intentó eliminar la imagen `mariadb` mientras el contenedor `bbdd` permanecía creado. Tal y como se esperaba, Docker impidió la eliminación de la imagen y generó un error; la captura con el mensaje resultante se incluye como evidencia:
+
+![Error al intentar borrar la imagen mariadb con el contenedor activo](captures/cannot_delet-mariadb_on-started.png)
+
+Describir las decisiones técnicas
+
+- Se eligió `php:7.4-apache` para disponer de un servidor LAMP ligero sin necesidad de configurar Apache manualmente dentro del contenedor. Esto facilita servir páginas estáticas y ejecutar `phpinfo()` con rapidez.
+- Para la verificación de la base de datos se prefirió conectar desde el host (no con `docker exec`) porque la práctica exige comprobar el acceso remoto mediante un cliente instalado en el equipo del alumno.
+- Las capturas seleccionadas documentan solo los puntos exigidos por la práctica, manteniendo la memoria concisa y centrada en la evidencia.
 
